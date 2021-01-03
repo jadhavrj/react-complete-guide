@@ -3,6 +3,9 @@ import React, { Component } from 'react';
 import classes from './App.css';
 import Persons from '../components/Persons/Persons';
 import Cockpit from '../components/Cockpit/Cockpit';
+import withClass from '../hoc/WithClass/withClass';
+import Aux from '../hoc/Auxiliary/Auxiliary';
+import AuthContext from '../context/auth-context';
 
 class App extends Component {
   state = {
@@ -12,7 +15,23 @@ class App extends Component {
       { id:'dsf', name: 'Rohan', age: 28 }
       ],
     otherState: 'some other value',
-    showPersonsToggle: false
+    showPersonsToggle: false,
+    showCockpit: true,
+    changeCounter: 0,
+    authenticated: false
+  }
+
+  componentDidMount() {
+    console.log('[App.js] componentDidMount');
+  }
+
+  shouldComponentUpdate(nextProps, nextState) {
+    console.log('[App.js] shouldComponentUpdate');
+    return true;
+  }
+
+  componentDidUpdate() {
+    console.log('[App.js] componentDidUpdate');
   }
 
   DeletePersonHandler = (personIndex) => {
@@ -40,31 +59,61 @@ class App extends Component {
     person.name = event.target.value;
     persons[personIndex] = person;
 
-    this.setState( {persons: persons} );
+    this.setState((prevState, props) => {
+      return {
+        persons: persons,
+        changeCounter: prevState.changeCounter + 1
+      };
+    });
+  }
+
+  loginHandler = () => {
+    this.setState({authenticated: true});
   }
 
   render() {
     let persons = null;
 
     if (this.state.showPersonsToggle) {
-      persons = <Persons
+      persons = (
+        <Persons
           persons={this.state.persons}
           clicked={this.DeletePersonHandler}
-          changed={this.NameChangedHandler} />
+          changed={this.NameChangedHandler}
+        />
+      );
     }
 
     return (
-      <div className={classes.App}>
-        <Cockpit
-          showPersonsToggle={this.state.showPersonsToggle}
-          persons={this.state.persons}
-          clicked={this.personsToggleHandler} />
-        {persons}
-      </div>
+      <Aux>
+        <button 
+          onClick={() => {
+            this.setState({showCockpit: !this.state.showCockpit});
+          }}
+        >
+          Remove Cockpit
+        </button>
+        <AuthContext.Provider 
+          value={{
+            authenticated: this.state.authenticated,
+            login: this.loginHandler
+          }}
+        >
+          {this.state.showCockpit ? (
+            <Cockpit
+              title={this.props.appTitle}
+              showPersonsToggle={this.state.showPersonsToggle}
+              personsLength={this.state.persons.length}
+              clicked={this.personsToggleHandler}
+            />
+          ) : null}
+          {persons}
+        </AuthContext.Provider>
+      </Aux>
     );
 
     // return React.createElement('div', {className: 'App'}, React.createElement('h1', null, 'Here is another way to render'));
   }
 }
 
-export default App;
+export default withClass(App, classes.App);
